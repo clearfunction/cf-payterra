@@ -1,0 +1,11 @@
+{
+  "cSpell.words": [
+    "dotenv",
+    "fastapi",
+    "PAYTERRA",
+    "pydantic",
+    "starlette",
+    "uvicorn",
+    "venv"
+  ]
+}
