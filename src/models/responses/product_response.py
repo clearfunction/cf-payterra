@@ -1,8 +1,8 @@
 from pydantic import BaseModel
-from typing import Dict
+from typing import List
 
 from models.product import Product
 
 
 class ProductResponse(BaseModel):
-    products: Dict[str, Product]
+    products: List[Product]
