@@ -5,6 +5,7 @@ from models.product_type import ProductType
 
 
 class ProductDetail(BaseModel):
+    product_id: str
     type: ProductType
     group: Optional[str] = None
     value: Optional[str] = None

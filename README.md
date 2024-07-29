@@ -31,6 +31,8 @@
     │   ├── responses
     │   │   └── ... <Pydantic classes for API request/response specification> ...
     │   └── ... <Pydantic classes for API request/response specification> ...
+    ├── routes
+    │   └── products.py                     <- Logic Handlers for API endpoints
     └── venv                                <- API Virtual Environment built with local requirements
 ```
 

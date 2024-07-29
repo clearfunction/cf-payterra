@@ -1,6 +1,7 @@
 import os
 import sqlite3
-from typing import List, Dict, Any
+from fastapi import HTTPException
+from typing import List
 
 from models.product import Product
 from models.product_detail import ProductDetail
@@ -11,7 +12,7 @@ DB_PATH = os.path.join(os.path.abspath(os.getcwd()), "db/payterra_test.sqlite")
 def query_products() -> List[str]:
     connection = sqlite3.connect(DB_PATH)
     cursor = connection.cursor()
-    cursor.execute("SELECT name from products;")
+    cursor.execute("SELECT product_id from products;")
     rows = cursor.fetchall()
     cursor.close()
     connection.close()
@@ -19,9 +20,12 @@ def query_products() -> List[str]:
     return [row[0] for row in rows]
 
 
-def query_product_details(product_name: str) -> List[Dict[str, Any]]:
+def query_product_details_by_id(product_id: str) -> Product:
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+
     query = """
-    SELECT p.name, p.vendor, 
+    SELECT p.product_id, p.name, p.vendor,
            (SELECT GROUP_CONCAT(st.name) 
             FROM "solution-type" st 
             JOIN "solution-type-graph" stg ON st.solution_type_id = stg.solution_type_id 
@@ -29,35 +33,33 @@ def query_product_details(product_name: str) -> List[Dict[str, Any]]:
            p.description, p.website, 
            pd.type, pd."group", pd.value, pd.description 
     FROM products p 
-    JOIN "product-details" pd ON p.product_id = pd.product_id 
-    WHERE p.name = ?;
+    JOIN "product-details" pd ON p.product_id = pd.product_id
+    WHERE p.product_id = ?;
     """
 
-    connection = sqlite3.connect(DB_PATH)
-    cursor = connection.cursor()
-    cursor.execute(query, (product_name,))
+    cursor.execute(query, (product_id,))
     rows = cursor.fetchall()
-    column_names = [desc[0] for desc in cursor.description]
     cursor.close()
     connection.close()
 
-    products_dict = {}
-    for row in rows:
-        product_data = dict(zip(column_names, row))
-        if product_data["name"] not in products_dict:
-            products_dict[product_data["name"]] = Product(
-                vendor=product_data["vendor"],
-                solution_type=product_data["solution_type"],
-                description=product_data["description"],
-                website=product_data["website"],
-                details=[],
-            )
-        product_detail = ProductDetail(
-            type=product_data["type"],
-            group=product_data["group"],
-            value=product_data["value"],
-            description=product_data["description"],
+    if not rows:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No product found with product_id: {product_id}",
         )
-        products_dict[product_data["name"]].details.append(product_detail)
 
-    return products_dict
+    product_id, name, vendor, solution_type, description, website = rows[0][:6]
+    details = [
+        ProductDetail(product_id=product_id, type=row[6], group=row[7], value=row[8], description=row[9])
+        for row in rows
+    ]
+
+    return Product(
+        product_id=product_id,
+        name=name,
+        vendor=vendor,
+        solution_type=solution_type,
+        description=description,
+        website=website,
+        details=details,
+    )

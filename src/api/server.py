@@ -2,12 +2,13 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
+from typing import Optional
 
-from db.query import query_product_details, query_products
 from middleware.exception import ExceptionHandlerMiddleware
 from models.responses.default_response import DefaultResponse
 from models.responses.product_response import ProductResponse
 from models.responses.version_response import VersionResponse
+from routes import products
 
 load_dotenv()
 
@@ -54,9 +55,9 @@ def get_api_status() -> VersionResponse:
     """
     Retrieves the current version of the API.
 
-    This synchronous endpoint is a quick way to check the API version. It returns a JSON object containing
-    the version number. This can be useful for debugging, logging, or ensuring compatibility
-    with client applications.
+    This synchronous endpoint is a quick way to check the API version. It returns a JSON
+    object containing the version number. This can be useful for debugging, logging, or
+    ensuring compatibility with client applications.
 
     Returns:
        dict: A JSON object containing the API version number.
@@ -68,38 +69,19 @@ def get_api_status() -> VersionResponse:
 
 
 @app.get("/products")
-def get_products() -> ProductResponse:
+def get_products(product_id: Optional[str] = None) -> ProductResponse:
     """
-    Responds with a list of all products in the database with their details.
+    Responds with a list of product information.
 
-    This synchronous endpoint is the default route for retrieving all product information.
+    This synchronous endpoint is the default route for retrieving product information.
+    Product ids retrieved by this endpoint can then be used as query parameters to
+    filter the response.
 
     Returns:
-        dict: A JSON object containing a list of product detail dictionaries.
+        dict: A JSON object containing a list of product information.
 
-    Example usage:
+    Example usages:
         curl http://localhost:8000/products
+        curl http://localhost:8000/products?product_id={product_id}
     """
-    products = {}
-    product_names = query_products()
-    for name in product_names:
-        product_details = query_product_details(name)
-        products[name] = product_details[name]
-
-    return ProductResponse(products=products)
-
-
-@app.get("/products/{product_name}")
-def get_product_details(product_name: str) -> ProductResponse:
-    """
-    Responds with a list of the specified product in the database with its details.
-
-    This synchronous endpoint is the default route for retrieving a single product's information.
-
-    Returns:
-        dict: A JSON object containing a list of product detail dictionaries.
-
-    Example usage:
-        curl http://localhost:8000/products/Exactpay
-    """
-    return ProductResponse(products=query_product_details(product_name))
+    return ProductResponse(products=products.get_filtered_products(product_id))
